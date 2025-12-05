@@ -53,14 +53,16 @@
 }
 
 .game-button {
-    -fx-background-color: linear-gradient(black);
+    /* FIX: Need two color stops */
+    -fx-background-color: linear-gradient(#000000, #000000);
     -fx-background-radius: 50;
     -fx-border-radius: 50;
     -fx-border-color: #A66A00;
     -fx-border-width: 4px;
     -fx-padding: 8 14;
     -fx-cursor: hand;
-    -fx-effect: dropshadow(guassian, rgba(0,0,0,0,.3), 5, 0.5, 2, 2);
+    /* FIXED GAUSSIAN + RGBA */
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 5, 0.5, 2, 2);
 }
 
 .game-button:hover {
@@ -356,10 +358,21 @@
     -fx-text-fill: #4a3c2f;
     -fx-padding: 5;
 }
+
 .back-button2 {
     -fx-background-color: transparent;
     -fx-font-size: 30px;
     -fx-text-fill: white;
     -fx-padding: 5;
+}
+
+.circular-bg {
+    -fx-background-color: transparent;
+    -fx-background-radius: 50%;
+    -fx-border-radius: 50%;
+    -fx-background-size: cover;              /* fill the button completely */
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-padding: 0;
 }
 
