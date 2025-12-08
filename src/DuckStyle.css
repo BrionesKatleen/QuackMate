@@ -52,6 +52,31 @@
     -fx-prompt-text-fill: rgba(255,255,255,0.7);
 }
 
+.game-button {
+    /* FIX: Need two color stops */
+    -fx-background-color: linear-gradient(#000000, #000000);
+    -fx-background-radius: 50;
+    -fx-border-radius: 50;
+    -fx-border-color: #A66A00;
+    -fx-border-width: 4px;
+    -fx-padding: 8 14;
+    -fx-cursor: hand;
+    /* FIXED GAUSSIAN + RGBA */
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 5, 0.5, 2, 2);
+}
+
+.game-button:hover {
+    -fx-background-color: #FFE066;
+    -fx-scale-x: 1.05;
+    -fx-scale-y: 1.05;
+}
+
+.game-button:pressed {
+    -fx-background-color: #F4C430;
+    -fx-scale-x: 0.95;
+    -fx-scale-y: 0.95;
+}
+
 .duck-button {
     -fx-background-color: linear-gradient(#ffe066, #ffcc00);
     -fx-text-fill: #4A2C00;
@@ -326,3 +351,28 @@
     -fx-background-radius: 0 !important;
     -fx-border-radius: 0 !important;
 }
+
+.back-button {
+    -fx-background-color: transparent;
+    -fx-font-size: 30px;
+    -fx-text-fill: #4a3c2f;
+    -fx-padding: 5;
+}
+
+.back-button2 {
+    -fx-background-color: transparent;
+    -fx-font-size: 30px;
+    -fx-text-fill: white;
+    -fx-padding: 5;
+}
+
+.circular-bg {
+    -fx-background-color: transparent;
+    -fx-background-radius: 50%;
+    -fx-border-radius: 50%;
+    -fx-background-size: cover;              /* fill the button completely */
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-padding: 0;
+}
+

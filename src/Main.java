@@ -2,8 +2,8 @@ import backEnd.models.User;
 import backEnd.services.UserService;
 import backEnd.services.sessionManager;
 import database.DB;
-import java.sql.SQLException;
 
+import javafx.animation.ScaleTransition;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -13,18 +13,21 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
+import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.text.Font;
+import javafx.util.Duration;
 
 public class Main extends Application {
 
-    private static MediaPlayer mediaPlayer; // persistent music
+    private static MediaPlayer mediaPlayer;
     private double happiness = 0.60;
     private double hunger = 0.70;
     private double energy = 0.50;
-    private double cleanliness = 0.40;
+    private double cleanliness = 0.70;
     private ImageView foodDisplay;
     private int foodIndex = 0;
     private final String[] foods = {"peas.png", "birdseed.png", "corn.png", "oats.png"};
@@ -51,7 +54,7 @@ public class Main extends Application {
 
         VBox userBox = new VBox(4, userLabel, usernameField);
         userBox.setAlignment(Pos.CENTER);
-        userBox.setLayoutX(130);
+        userBox.setLayoutX(120);
         userBox.setLayoutY(240);
 
         PasswordField passwordField = new PasswordField();
@@ -63,21 +66,21 @@ public class Main extends Application {
 
         VBox passBox = new VBox(4, passLabel, passwordField);
         passBox.setAlignment(Pos.CENTER);
-        passBox.setLayoutX(130);
+        passBox.setLayoutX(120);
         passBox.setLayoutY(300);
 
         Label error = new Label();
         error.getStyleClass().add("error-label");
         error.setVisible(false);
-        error.setLayoutX(140);
-        error.setLayoutY(350);
+        error.setLayoutX(80);
+        error.setLayoutY(425);
 
         Button loginButton = new Button("🦆 Sign In");
         loginButton.getStyleClass().add("login-button");
         loginButton.setPrefWidth(110);
         loginButton.setPrefHeight(26);
         loginButton.setStyle("-fx-font-size: 11px;");
-        loginButton.setLayoutX(150);
+        loginButton.setLayoutX(140);
         loginButton.setLayoutY(380);
         loginButton.setOnAction(e -> {
             String username = usernameField.getText().trim(); // CHANGED
@@ -103,12 +106,15 @@ public class Main extends Application {
 
         Pane layoutPane = new Pane(userBox, passBox, loginButton, error);
 
-        Button signUpBtn = new Button("Don't have an account? Sign Up");
-        signUpBtn.getStyleClass().add("signup-button");
+        Button signUpBtn = new Button("Sign Up");
+        signUpBtn.getStyleClass().add("login-button");
         signUpBtn.setFont(Font.font(9));
+        signUpBtn.setPrefWidth(110);
+        signUpBtn.setStyle("-fx-font-size: 11px;");
+        signUpBtn.setPrefHeight(26);
         signUpBtn.setPadding(new Insets(1, 4, 1, 4));
-        signUpBtn.setLayoutX(210);
-        signUpBtn.setLayoutY(455);
+        signUpBtn.setLayoutX(275);
+        signUpBtn.setLayoutY(445);
         signUpBtn.setOnAction(e -> signUpFrame(stage));
 
         layoutPane.getChildren().add(signUpBtn);
@@ -131,7 +137,7 @@ public class Main extends Application {
         Scene scene = new Scene(root, 400, 500);
         bgView.fitWidthProperty().bind(scene.widthProperty());
         bgView.fitHeightProperty().bind(scene.heightProperty());
-        scene.getStylesheets().add(getClass().getResource("DuckStyle.css").toExternalForm());
+        scene.getStylesheets().add(getClass().getResource("/DuckStyle.css").toExternalForm());
 
         stage.setTitle("QuackMate - Login");
         Image icon = new Image(getClass().getResource("/QuackMate.png").toExternalForm());
@@ -141,7 +147,7 @@ public class Main extends Application {
         stage.show();
 
         if (mediaPlayer == null) {
-            String musicFile = getClass().getResource("bgmusic.mp3").toExternalForm();
+            String musicFile = getClass().getResource("/bgmusic.mp3").toExternalForm();
             Media sound = new Media(musicFile);
             mediaPlayer = new MediaPlayer(sound);
             mediaPlayer.setCycleCount(MediaPlayer.INDEFINITE);
@@ -149,21 +155,24 @@ public class Main extends Application {
         }
     }
 
+    private void aboutUs(Stage stage) {
+        aboutUs(stage, ""); // pass empty username
+    }
+
     public void signUpFrame(Stage stage) {
 
+        StackPane root = new StackPane();
+
+        // Background image
         Image bgImage = new Image(getClass().getResource("/MainLoginGrame.jpg").toExternalForm());
         ImageView bgView = new ImageView(bgImage);
         bgView.setPreserveRatio(false);
-        bgView.setFitWidth(450);
-        bgView.setFitHeight(600);
-
-        Pane root = new Pane(bgView);
+        bgView.setFitWidth(400); // match scene width
+        bgView.setFitHeight(500); // match scene height
 
         // --- CENTER CONTAINER ---
         VBox centerBox = new VBox(15);
         centerBox.setAlignment(Pos.CENTER);
-        centerBox.setPrefWidth(450);           // so it centers horizontally
-        centerBox.setLayoutY(170);             // moves the whole block downward
 
         // Title
         Label title = new Label("Create Account");
@@ -204,11 +213,25 @@ public class Main extends Application {
         error.getStyleClass().add("error-label");
         error.setVisible(false);
 
-        // Button
+        BorderPane overlay = new BorderPane();
+        overlay.setPickOnBounds(false);
+        Pane backPane = new Pane();
+        Button backBtn = new Button("⬅");
+        backBtn.getStyleClass().add("login-button");
+        backBtn.setPrefHeight(30);
+        backBtn.setPrefWidth(70);
+        backBtn.setStyle("-fx-font-size: 13px;");
+        backBtn.setOnAction(e -> start(stage));
+        backBtn.setLayoutX(10);
+        backBtn.setLayoutY(10);
+
+        backPane.getChildren().add(backBtn);
+        overlay.setTop(backPane);
+
+        // Create button
         Button signupButton = new Button("Create");
         signupButton.getStyleClass().add("login-button");
         signupButton.setPrefWidth(130);
-
         signupButton.setOnAction(e -> {
             String username = usernameField.getText().trim(); // CHANGED
             String password = passwordField.getText();
@@ -253,125 +276,290 @@ public class Main extends Application {
             }
         });
 
-        // Add all elements to center box
         centerBox.getChildren().addAll(title, userBox, passBox, confirmBox, error, signupButton);
-        root.getChildren().add(centerBox);
 
-        Scene scene = new Scene(root, 450, 600);
-        scene.getStylesheets().add(getClass().getResource("DuckStyle.css").toExternalForm());
+        root.getChildren().addAll(bgView, centerBox, overlay);
+
+        Scene scene = new Scene(root, 400, 500);
+        scene.getStylesheets().add(getClass().getResource("/DuckStyle.css").toExternalForm());
         stage.setScene(scene);
+        stage.setResizable(false);
         stage.show();
     }
 
-
-
     private void DuckHouse(Stage stage, String username) {
-        sceneTemplate(stage, "balay.png", username);
+        BorderPane layout = sceneTemplate(stage, "house.png", username);
+
+        StackPane root = (StackPane) stage.getScene().getRoot();
+
+        // CHARACTER
+        Image duckChar = new Image(getClass().getResource("/dockie.png").toExternalForm(), false);
+        ImageView charac = new ImageView(duckChar);
+        charac.setFitWidth(80);
+        charac.setPreserveRatio(true);
+        StackPane.setAlignment(charac, Pos.BOTTOM_CENTER);
+        StackPane.setMargin(charac, new Insets(0, 0, 210, 0));
+
+        // SIGN
+        Image sign = new Image(getClass().getResource("/sign.png").toExternalForm());
+        ImageView signView = new ImageView(sign);
+        signView.setFitWidth(180);
+        signView.setPreserveRatio(true);
+        StackPane.setAlignment(signView, Pos.TOP_CENTER);
+        StackPane.setMargin(signView, new Insets(70, 0, 0, 0));
+
+        // HOUSE LABEL
+        Label userLabel = new Label("Joushua's House");
+        userLabel.setFont(Font.font("Arial", FontWeight.BOLD, 15));
+        userLabel.setTextFill(Color.WHITE);
+        userLabel.setStyle(
+                "-fx-background-color: transparent;" +
+                        "-fx-border-color: transparent;"
+        );
+        userLabel.setPrefWidth(180);
+        userLabel.setPrefHeight(40);
+
+        // Align label
+        StackPane.setAlignment(userLabel, Pos.TOP_CENTER);
+        StackPane.setMargin(userLabel, new Insets(130, 0, 0, 57)); // adjust top, left, bottom, right
+
+        if (!root.getChildren().contains(charac)) root.getChildren().add(charac);
+        if (!root.getChildren().contains(signView)) root.getChildren().add(signView);
+        if (!root.getChildren().contains(userLabel)) root.getChildren().add(userLabel);
     }
 
+
     private void kitchen(Stage stage, String username) {
-
         BorderPane layout = sceneTemplate(stage, "eat.png", username);
+        StackPane root = (StackPane) stage.getScene().getRoot();
 
-        // ====== FOOD + BUTTON HOLDER (FREE POSITIONING) ======
+        // ===== DUCK IMAGE (DROP TARGET) =====
+        ImageView duck = new ImageView(new Image(getClass().getResource("/dockieKitchen.png").toExternalForm(), false));
+        duck.setFitWidth(150); duck.setPreserveRatio(true);
+        StackPane.setAlignment(duck, Pos.BOTTOM_CENTER);
+        StackPane.setMargin(duck, new Insets(0, -140, 100, 0));
+        root.getChildren().add(duck);
+
+        // Duck does not block buttons by default
+        duck.setMouseTransparent(true);
+
+        // ===== FOOD PANE =====
         Pane foodPane = new Pane();
-        foodPane.setPrefSize(100, 100);
+        foodPane.setPrefSize(200, 300);
+        layout.setCenter(foodPane);
 
-        // ====== FOOD IMAGE ======
-        Image img = new Image(getClass().getResourceAsStream(foods[foodIndex]));
-        foodDisplay = new ImageView(img);
-        foodDisplay.setFitWidth(90);   // <-- SMALLER FOOD SIZE
-        foodDisplay.setPreserveRatio(true);
+        // Buttons
+        Button btnLeft = new Button(); btnLeft.getStyleClass().add("arrow-button-left");
+        btnLeft.setPrefSize(30, 30); btnLeft.setLayoutX(20); btnLeft.setLayoutY(200);
+        Button btnRight = new Button(); btnRight.getStyleClass().add("arrow-button-right");
+        btnRight.setPrefSize(30, 30); btnRight.setLayoutX(140); btnRight.setLayoutY(200);
+        foodPane.getChildren().addAll(btnLeft, btnRight);
 
-        // >>> CHANGE FOOD POSITION HERE <<<
-        foodDisplay.setLayoutX(55);
-        foodDisplay.setLayoutY(130);
+        // ===== INITIAL FOOD =====
+        createFood(foodPane, duck);
 
-        // ====== LEFT BUTTON ======
-        Button btnLeft = new Button();
-        btnLeft.getStyleClass().add("arrow-button-left");
-        btnLeft.setPrefSize(30, 30);
+        // Button actions to switch food manually
         btnLeft.setOnAction(e -> {
             foodIndex = (foodIndex - 1 + foods.length) % foods.length;
-            updateFoodImage();
+            updateFood(foodPane, duck);
         });
 
-        btnLeft.setLayoutX(20);
-        btnLeft.setLayoutY(200);
-
-        // ====== RIGHT BUTTON ======
-        Button btnRight = new Button();
-        btnRight.getStyleClass().add("arrow-button-right");
-        btnRight.setPrefSize(30, 30);
         btnRight.setOnAction(e -> {
             foodIndex = (foodIndex + 1) % foods.length;
-            updateFoodImage();
+            updateFood(foodPane, duck);
         });
-
-        btnRight.setLayoutX(140);
-        btnRight.setLayoutY(200);
-
-        // Add to pane
-        foodPane.getChildren().addAll(foodDisplay, btnLeft, btnRight);
-
-        // Add pane to layout center (background stays eat.png)
-        layout.setCenter(foodPane);
 
         stage.setScene(new Scene(layout, 400, 500));
         stage.show();
     }
 
-    private void updateFoodImage() {
-        Image img = new Image(getClass().getResourceAsStream(foods[foodIndex]));
-        foodDisplay.setImage(img);
+    // Create the food ImageView and make it draggable
+    private void createFood(Pane foodPane, ImageView duck) {
+        foodDisplay = new ImageView(new Image(getClass().getResourceAsStream("/" + foods[foodIndex])));
+        foodDisplay.setFitWidth(90); foodDisplay.setPreserveRatio(true);
+        foodDisplay.setLayoutX(55); foodDisplay.setLayoutY(130);
+
+        makeDraggable(foodDisplay, duck, foodPane);
+        foodPane.getChildren().add(foodDisplay);
     }
+
+    // Update the current food
+    private void updateFood(Pane foodPane, ImageView duck) {
+        foodPane.getChildren().remove(foodDisplay); // remove old food
+        createFood(foodPane, duck);                 // add new food
+    }
+
+    // Draggable
+    private void makeDraggable(ImageView food, ImageView duck, Pane pane) {
+        final Delta dragDelta = new Delta();
+
+        food.setOnMousePressed(e -> {
+            dragDelta.x = e.getSceneX() - food.getLayoutX();
+            dragDelta.y = e.getSceneY() - food.getLayoutY();
+            food.toFront(); // above duck while dragging
+        });
+
+        food.setOnMouseDragged(e -> {
+            food.setLayoutX(e.getSceneX() - dragDelta.x);
+            food.setLayoutY(e.getSceneY() - dragDelta.y);
+            food.toFront(); // keep food above duck
+        });
+
+        food.setOnDragDetected(e -> {
+            food.startFullDrag();
+            duck.setMouseTransparent(false);
+            food.toFront();
+            e.consume();
+        });
+
+        // Feeding the duck
+        duck.setOnMouseDragReleased(e -> {
+            Object src = e.getGestureSource();
+            if (src instanceof ImageView draggedFood) {
+
+                // Bring food to front so it looks like duck eats it
+                draggedFood.toFront();
+
+                // Eat animation
+                ScaleTransition st = new ScaleTransition(Duration.millis(140), duck);
+                st.setFromX(1); st.setFromY(1);
+                st.setToX(1.15); st.setToY(1.15);
+                st.setAutoReverse(true);
+                st.setCycleCount(2);
+                st.play();
+
+                // Remove food and show next
+                foodIndex = (foodIndex + 1) % foods.length;
+                updateFood(pane, duck);
+            }
+
+            duck.setMouseTransparent(true);
+        });
+
+        food.setOnMouseReleased(e -> duck.setMouseTransparent(true));
+    }
+
+
+    private static class Delta { double x, y; }
+
 
     private void bathRoom(Stage stage, String username) {
         BorderPane layout = sceneTemplate(stage, "cr.png", username);
 
-        Image brush = new Image(getClass().getResource("water (1).png").toExternalForm());
-        Image bucket = new Image(getClass().getResource("scrub.png").toExternalForm());
+        Image bucket = new Image(getClass().getResource("/water (1).png").toExternalForm());
+        Image brush = new Image(getClass().getResource("/scrub.png").toExternalForm());
+        Image dockieBath = new Image(getClass().getResource("/dockieBath.png").toExternalForm());
 
         ImageView brushView = new ImageView(brush);
         ImageView bucketView = new ImageView(bucket);
+        ImageView dockieView = new ImageView(dockieBath);
 
         brushView.setFitHeight(80);
         brushView.setFitWidth(80);
         bucketView.setFitHeight(80);
         bucketView.setFitWidth(80);
 
-        Button brushBtn = new Button();
-        brushBtn.setGraphic(brushView);
-        brushBtn.setStyle("-fx-background-color: transparent;");
-        brushBtn.setOnAction(e -> System.out.println("Nag banlaw ang Itik"));
+        // Duck size
+        dockieView.setFitWidth(150);
+        dockieView.setPreserveRatio(true);
 
+        // Buttons
         Button bucketBtn = new Button();
         bucketBtn.setGraphic(bucketView);
         bucketBtn.setStyle("-fx-background-color: transparent;");
-        bucketBtn.setOnAction(e -> System.out.println("Nag lugod ang itik"));
 
+        Button brushBtn = new Button();
+        brushBtn.setGraphic(brushView);
+        brushBtn.setStyle("-fx-background-color: transparent;");
+
+        // Root pane
         StackPane root = (StackPane) stage.getScene().getRoot();
-        StackPane.setAlignment(bucketBtn, Pos.CENTER_RIGHT);
-        StackPane.setMargin(bucketBtn, new Insets(0, 0, 100, 20));
-        StackPane.setAlignment(brushBtn, Pos.CENTER_LEFT);
-        StackPane.setMargin(brushBtn, new Insets(0, 20, 100, 0));
-        root.getChildren().addAll(bucketBtn, brushBtn);
+
+        // Positioning
+        StackPane.setAlignment(dockieView, Pos.CENTER);
+        dockieView.setTranslateY(20);
+
+        StackPane.setAlignment(brushBtn, Pos.CENTER_RIGHT);
+        brushBtn.setTranslateX(-20);
+        brushBtn.setTranslateY(40);
+
+        StackPane.setAlignment(bucketBtn, Pos.CENTER_LEFT);
+        bucketBtn.setTranslateX(10);
+        bucketBtn.setTranslateY(40);
+
+        root.getChildren().addAll(dockieView, bucketBtn, brushBtn);
+
+
+        double[] bucketOrig = { bucketBtn.getTranslateX(), bucketBtn.getTranslateY() };
+        double[] brushOrig = { brushBtn.getTranslateX(), brushBtn.getTranslateY() };
+
+        makeDraggable(bucketBtn, bucketOrig, dockieView);
+        makeDraggable(brushBtn, brushOrig, dockieView);
     }
 
+    private void makeDraggable(Button btn, double[] origPos, ImageView duck) {
+
+        final double[] mouseOffset = new double[2];
+
+        btn.setOnMousePressed(e -> {
+            mouseOffset[0] = e.getSceneX() - btn.getTranslateX();
+            mouseOffset[1] = e.getSceneY() - btn.getTranslateY();
+        });
+
+        btn.setOnMouseDragged(e -> {
+            btn.setTranslateX(e.getSceneX() - mouseOffset[0]);
+            btn.setTranslateY(e.getSceneY() - mouseOffset[1]);
+
+            // Touch detection (washing)
+            if (btn.getBoundsInParent().intersects(duck.getBoundsInParent())) {
+                duck.setOpacity(0.7);   // washing effect
+            } else {
+                duck.setOpacity(1.0);
+            }
+        });
+
+        btn.setOnMouseReleased(e -> {
+            // Snap back
+            btn.setTranslateX(origPos[0]);
+            btn.setTranslateY(origPos[1]);
+            duck.setOpacity(1.0);
+        });
+    }
+
+
     private void bedRoom(Stage stage, String username) {
+        // Get base layout from sceneTemplate
         BorderPane layout = sceneTemplate(stage, "room.png", username);
 
-        Image lampOff = new Image(getClass().getResource("lambing.png").toExternalForm());
-        Image lampOn = new Image(getClass().getResource("lamning.png").toExternalForm());
-        Image bgOff = new Image(getClass().getResource("nightver.png").toExternalForm());
-        Image bgOn = new Image(getClass().getResource("room.png").toExternalForm());
-        Image awakeDuck = new Image(getClass().getResource("dockie.png").toExternalForm());
-        Image sleepingDuck = new Image(getClass().getResource("sleepyhead.png").toExternalForm());
+        // Images
+        Image lampOff = new Image(getClass().getResource("/lambing.png").toExternalForm());
+        Image lampOn = new Image(getClass().getResource("/lamning.png").toExternalForm());
+        Image bgOff = new Image(getClass().getResource("/nightver.png").toExternalForm());
+        Image bgOn = new Image(getClass().getResource("/room.png").toExternalForm());
+        Image character = new Image(getClass().getResource("/dockieCloset.png").toExternalForm());
+        ImageView characs = new ImageView(character);
+        characs.setFitWidth(150);
+        characs.setPreserveRatio(true);
+        Image awakeDuck = new Image(getClass().getResource("/dockieBed.png").toExternalForm());
+        Image sleepingDuck = new Image(getClass().getResource("/DuckSleeping.png").toExternalForm());
 
+        // Access the root StackPane
         StackPane root = (StackPane) stage.getScene().getRoot();
-        ImageView bgView = (ImageView) root.getChildren().get(0);
-        ImageView charac = (ImageView) root.getChildren().get(root.getChildren().size() - 1);
 
+        // Background image view
+        ImageView bgView = (ImageView) root.getChildren().get(0);
+
+        // Create new ImageView for the character and add it to the root
+        ImageView charac = new ImageView(awakeDuck);
+        charac.setFitWidth(150);
+        charac.setPreserveRatio(true);
+        StackPane.setAlignment(charac, Pos.BOTTOM_CENTER);
+        StackPane.setMargin(charac, new Insets(0, 0, 180, 0));
+        if (!root.getChildren().contains(charac)) {
+            root.getChildren().add(charac);
+        }
+
+        // Lamp button
         ImageView lampView = new ImageView(lampOn);
         lampView.setFitWidth(80);
         lampView.setPreserveRatio(true);
@@ -380,8 +568,6 @@ public class Main extends Application {
         lampButton.setGraphic(lampView);
         lampButton.getStyleClass().add("lamp-button");
         lampButton.setSelected(true);
-        charac.setImage(awakeDuck);
-        bgView.setImage(bgOn);
 
         lampButton.setOnAction(e -> {
             if (lampButton.isSelected()) {
@@ -389,26 +575,44 @@ public class Main extends Application {
                 bgView.setImage(bgOn);
                 charac.setImage(awakeDuck);
                 charac.setFitWidth(150);
-                charac.setPreserveRatio(true);
                 StackPane.setMargin(charac, new Insets(0, 0, 180, 0));
             } else {
                 lampView.setImage(lampOff);
                 bgView.setImage(bgOff);
                 charac.setImage(sleepingDuck);
-                charac.setFitWidth(140);
-                charac.setPreserveRatio(true);
+                charac.setFitWidth(210);
                 StackPane.setMargin(charac, new Insets(0, 0, 160, 0));
             }
         });
 
         StackPane.setAlignment(lampButton, Pos.TOP_RIGHT);
         StackPane.setMargin(lampButton, new Insets(60, 30, 0, 0));
-        root.getChildren().add(lampButton);
+
+        // Add lamp button to root
+        if (!root.getChildren().contains(lampButton)) {
+            root.getChildren().add(lampButton);
+        }
     }
 
     private void closet(Stage stage, String username) {
+        // Keep your original background
         BorderPane layout = sceneTemplate(stage, "closet.png", username);
 
+        // --- Character ---
+        Image character = new Image(getClass().getResource("/dockieCloset.png").toExternalForm());
+        ImageView charac = new ImageView(character);
+        charac.setFitWidth(150);
+        charac.setPreserveRatio(true);
+
+        // Get the StackPane used inside sceneTemplate
+        StackPane root = (StackPane) stage.getScene().getRoot();
+
+        // Add character to the root so it appears on top of background
+        StackPane.setAlignment(charac, Pos.BOTTOM_CENTER);
+        StackPane.setMargin(charac, new Insets(0, 0, 180, 0)); // adjust vertical position if needed
+        root.getChildren().add(charac);
+
+        // --- Buttons ---
         Button leftArrow = new Button();
         leftArrow.getStyleClass().add("arrow-button-left");
         leftArrow.setOnAction(e -> System.out.println("Left arrow clicked!"));
@@ -417,7 +621,7 @@ public class Main extends Application {
         rightArrow.getStyleClass().add("arrow-button-right");
         rightArrow.setOnAction(e -> System.out.println("Right arrow clicked!"));
 
-        StackPane root = (StackPane) stage.getScene().getRoot();
+        // Add buttons to the same root
         StackPane.setAlignment(leftArrow, Pos.CENTER_LEFT);
         StackPane.setAlignment(rightArrow, Pos.CENTER_RIGHT);
         StackPane.setMargin(leftArrow, new Insets(0, 0, 0, 10));
@@ -426,14 +630,9 @@ public class Main extends Application {
     }
 
     private BorderPane sceneTemplate(Stage stage, String bgFile, String username) {
-        Image backGround = new Image(getClass().getResource(bgFile).toExternalForm());
+        Image backGround = new Image(getClass().getResource("/" + bgFile).toExternalForm());
         ImageView bg = new ImageView(backGround);
         bg.setPreserveRatio(false);
-
-        Image character = new Image(getClass().getResource("dockie.png").toExternalForm());
-        ImageView charac = new ImageView(character);
-        charac.setFitWidth(150);
-        charac.setPreserveRatio(true);
 
         Button duckMenuBtn = new Button("🦆");
         duckMenuBtn.getStyleClass().add("duck-button");
@@ -484,12 +683,10 @@ public class Main extends Application {
         layout.setTop(leftStack);
         layout.setBottom(bottomRow);
 
-        StackPane root = new StackPane(bg, layout, charac);
-        StackPane.setAlignment(charac, Pos.BOTTOM_CENTER);
-        StackPane.setMargin(charac, new Insets(0, 0, 180, 0));
+        StackPane root = new StackPane(bg, layout);
 
         Scene scene = new Scene(root, 400, 500);
-        scene.getStylesheets().add(getClass().getResource("DuckStyle.css").toExternalForm());
+        scene.getStylesheets().add(getClass().getResource("/DuckStyle.css").toExternalForm());
 
         bg.fitWidthProperty().bind(scene.widthProperty());
         bg.fitHeightProperty().bind(scene.heightProperty());
@@ -517,7 +714,7 @@ public class Main extends Application {
         picBtn.setGraphic(playView);
         picBtn.getStyleClass().add("duck-button");
         picBtn.setStyle("-fx-background-radius: 0; -fx-padding: 0;");
-        picBtn.setOnAction(e -> System.out.println("Picture button 1 clicked!"));
+        picBtn.setOnAction(e -> cardFlip(stage, username));
         picBtn.setOnMousePressed(e -> { picBtn.setScaleX(0.9); picBtn.setScaleY(0.9); });
         picBtn.setOnMouseReleased(e -> { picBtn.setScaleX(1.0); picBtn.setScaleY(1.0); });
 
@@ -531,7 +728,7 @@ public class Main extends Application {
         picBtn2.setGraphic(playView2);
         picBtn2.getStyleClass().add("duck-button");
         picBtn2.setStyle("-fx-background-radius: 0; -fx-padding: 0;");
-        picBtn2.setOnAction(e -> System.out.println("Picture button 2 clicked!"));
+        picBtn2.setOnAction(e -> flappyDuck(stage, username));
         picBtn2.setOnMousePressed(e -> { picBtn2.setScaleX(0.9); picBtn2.setScaleY(0.9); });
         picBtn2.setOnMouseReleased(e -> { picBtn2.setScaleX(1.0); picBtn2.setScaleY(1.0); });
 
@@ -560,7 +757,45 @@ public class Main extends Application {
         stage.setMaximized(false);
         stage.show();
     }
+    public void flappyDuck (Stage stage, String username){
+        StackPane root = new StackPane();
+        root.setStyle("-fx-background-color: #fff9d6;");
 
+        Scene scene = new Scene(root, 400, 500);
+        scene.getStylesheets().add(getClass().getResource("/DuckStyle.css").toExternalForm());
+
+        Button backBtn = new Button("❮");
+        backBtn.getStyleClass().add("back-button");
+        backBtn.setOnAction(e -> GamesFrame(stage, username));
+
+        StackPane.setAlignment(backBtn, Pos.TOP_LEFT);
+        StackPane.setMargin(backBtn, new Insets(10, 0, 0, 10));
+
+        root.getChildren().add(backBtn);
+
+        stage.setScene(scene);
+        stage.show();
+    }
+
+    public void cardFlip (Stage stage, String username){
+        StackPane root = new StackPane();
+        root.setStyle("-fx-background-color: #fff9d6;");
+
+        Scene scene = new Scene(root, 400, 500);
+        scene.getStylesheets().add(getClass().getResource("/DuckStyle.css").toExternalForm());
+
+        Button backBtn = new Button("❮");
+        backBtn.getStyleClass().add("back-button");
+        backBtn.setOnAction(e -> GamesFrame(stage, username));
+
+        StackPane.setAlignment(backBtn, Pos.TOP_LEFT);
+        StackPane.setMargin(backBtn, new Insets(10, 0, 0, 10));
+
+        root.getChildren().add(backBtn);
+
+        stage.setScene(scene);
+        stage.show();
+    }
     public void SettingsFrame(Stage stage, String username) {
 
         StackPane root = new StackPane();
@@ -575,16 +810,10 @@ public class Main extends Application {
         duckView.setLayoutY(30);
 
         // Powered by image
-        Image poweredImg = new Image(getClass().getResource("powered.png").toExternalForm());
+        Image poweredImg = new Image(getClass().getResource("/powered.png").toExternalForm());
         ImageView poweredBy = new ImageView(poweredImg);
         poweredBy.setFitWidth(200);
         poweredBy.setPreserveRatio(true);
-
-        // i.png image
-        Image i = new Image(getClass().getResource("i.png").toExternalForm());
-        ImageView itoo = new ImageView(i);
-        itoo.setFitWidth(50);
-        itoo.setPreserveRatio(true);
 
         // Buttons
         Button btn1 = new Button("⬅");
@@ -602,7 +831,7 @@ public class Main extends Application {
         btn2.setAlignment(Pos.CENTER);
         btn2.setOnAction(e -> start(stage));
 
-        // ====== Mute Button Added Here ======
+        // Mute Button
         Button muteBtn = new Button("🔇");
         muteBtn.getStyleClass().add("mute-button");
         muteBtn.setPrefSize(50, 50);
@@ -615,18 +844,25 @@ public class Main extends Application {
             }
         });
 
-        Pane buttonPane = new Pane(btn1, btn2, duckView, muteBtn);
+        Image i = new Image(getClass().getResource("/i.png").toExternalForm());
+        ImageView iView = new ImageView(i);
+        iView.setFitWidth(40);
+        iView.setPreserveRatio(true);
 
-        // Add all to root
-        root.getChildren().addAll(buttonPane, poweredBy, itoo);
+        Button infoBtn = new Button();
+        infoBtn.setGraphic(iView);
+        infoBtn.setStyle("-fx-background-color: transparent; -fx-padding: 0;");
+        infoBtn.setShape(new Circle(25)); // shape
+        infoBtn.setLayoutX(355); // adjust pa left or right
+        infoBtn.setLayoutY(460); // adjust pa up or down
+        infoBtn.setOnAction(e -> aboutUs(stage, username));
 
-        // Position poweredBy at bottom center
+        Pane buttonPane = new Pane(btn1, btn2, duckView, muteBtn, infoBtn);
+
+        root.getChildren().addAll(buttonPane, poweredBy);
+
         StackPane.setAlignment(poweredBy, Pos.BOTTOM_CENTER);
         StackPane.setMargin(poweredBy, new Insets(0, 0, 10, 0));
-
-        // Position itoo at bottom right
-        StackPane.setAlignment(itoo, Pos.BOTTOM_RIGHT);
-        StackPane.setMargin(itoo, new Insets(0, 10, 10, 0));
 
         Scene scene = new Scene(root, 400, 500);
         scene.getStylesheets().add(getClass().getResource("/DuckStyle.css").toExternalForm());
@@ -686,7 +922,7 @@ public class Main extends Application {
         root.getChildren().addAll(card, overlay);
 
         Scene scene = new Scene(root, 400, 500);
-        scene.getStylesheets().add(getClass().getResource("DuckStyle.css").toExternalForm());
+        scene.getStylesheets().add(getClass().getResource("/DuckStyle.css").toExternalForm());
 
         stage.setScene(scene);
         stage.show();
@@ -705,12 +941,99 @@ public class Main extends Application {
         return v;
     }
 
-    public static void main(String[] args) {
 
+    private void aboutUs(Stage stage, String username) {
+        StackPane root = new StackPane();
+
+        Image bg = new Image(getClass().getResource("/MainLoginGrame.jpg").toExternalForm());
+        ImageView backGround = new ImageView(bg);
+        backGround.setPreserveRatio(false);
+        root.getChildren().add(backGround);
+
+        Image sign = new Image(getClass().getResource("/QuackNet.png").toExternalForm());
+        ImageView signView = new ImageView(sign);
+        signView.setFitWidth(250);
+        signView.setPreserveRatio(true);
+        StackPane.setAlignment(signView, Pos.TOP_CENTER);
+        StackPane.setMargin(signView, new Insets(-60, 0, 0, 0));
+        root.getChildren().add(signView);
+
+        Button backBtn = new Button("❮");
+        backBtn.getStyleClass().add("back-button2");
+        backBtn.setOnAction(e -> SettingsFrame(stage, username));
+        StackPane.setAlignment(backBtn, Pos.TOP_LEFT);
+        StackPane.setMargin(backBtn, new Insets(10, 0, 0, 10));
+        root.getChildren().add(backBtn);
+
+        int buttonSize = 80;
+
+        java.util.function.BiFunction<String, String, VBox> createProfile = (img, name) -> {
+            Button picBtn = createCircularImageButton(img, buttonSize);
+
+            Label label = new Label(name);
+            label.getStyleClass().add("form-label");
+            label.setFont(Font.font(10));
+            label.setAlignment(Pos.CENTER);
+            label.setMaxWidth(buttonSize);
+
+            VBox box = new VBox(5, picBtn, label);
+            box.setAlignment(Pos.CENTER);
+
+            return box;
+        };
+
+        VBox p1 = createProfile.apply("/joshua.png", "Joshua Largado");
+        VBox p2 = createProfile.apply("/katleen.png", "Katleen Kriones");
+        VBox p3 = createProfile.apply("/zash.png", "Zashkie Bontia");
+
+        HBox hBoxTop = new HBox(20, p1, p2, p3);
+        hBoxTop.setLayoutX(35);
+        hBoxTop.setLayoutY(110);
+
+        VBox p4 = createProfile.apply("/grace.png", "Grace Galua");
+        VBox p5 = createProfile.apply("/hazel.png", "Hazel Brigoli");
+        VBox p6 = createProfile.apply("/flor.png", "Flor Gamali");
+
+        HBox hBoxBottom = new HBox(20, p4, p5, p6);
+        hBoxBottom.setLayoutX(35);
+        hBoxBottom.setLayoutY(270);
+
+        Pane floatingPane = new Pane(hBoxTop, hBoxBottom);
+        floatingPane.setPickOnBounds(false);
+        root.getChildren().add(floatingPane);
+
+        Scene scene = new Scene(root, 400, 500);
+        scene.getStylesheets().add(getClass().getResource("/DuckStyle.css").toExternalForm());
+
+        backGround.fitWidthProperty().bind(scene.widthProperty());
+        backGround.fitHeightProperty().bind(scene.heightProperty());
+
+        stage.setScene(scene);
+        stage.setResizable(false);
+        stage.show();
+    }
+
+    private Button createCircularImageButton(String imagePath, int size) {
+        Image img = new Image(getClass().getResource(imagePath).toExternalForm());
+        ImageView imgView = new ImageView(img);
+        imgView.setFitWidth(size);
+        imgView.setFitHeight(size);
+        imgView.setPreserveRatio(true);
+
+        Circle clip = new Circle(size / 2, size / 2, size / 2);
+        imgView.setClip(clip);
+
+        Button btn = new Button();
+        btn.setStyle("-fx-background-color: transparent;");
+        btn.setGraphic(imgView);
+        btn.setPrefSize(size, size);
+        return btn;
+    }
+
+    public static void main(String[] args) {
         DB.initialize(); // ENSURE ALL TABLES ARE CREATED
         DB.addSampleData(); // ADDS TEST USERS
         DB.printAllUsers(); // CHECKS IF THE USER IS ADDED
         launch(args);
-
     }
 }
