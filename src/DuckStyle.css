@@ -376,3 +376,22 @@
     -fx-padding: 0;
 }
 
+.buy-button {
+    -fx-background-color: #00FF00;
+    -fx-text-fill: black;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 20px;
+    -fx-padding: 8px 20px;
+    -fx-border-color: black;
+    -fx-border-width: 2px;
+    -fx-border-radius: 20px;
+}
+.buy-button:hover {
+    -fx-background-color: #00CC00;
+}
+.buy-button:pressed {
+    -fx-background-color: #009900;
+}
+
+

@@ -1,12 +1,15 @@
-import javafx.animation.ScaleTransition;
+import javafx.animation.*;
 import javafx.application.Application;
+import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
+import javafx.geometry.Point2D;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
+import javafx.scene.media.AudioClip;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.text.FontWeight;
@@ -26,7 +29,8 @@ public class Main extends Application {
     private ImageView foodDisplay;
     private int foodIndex = 0;
     private final String[] foods = {"peas.png", "birdseed.png", "corn.png", "oats.png"};
-
+    private static Image selectedCharacter = null;
+    // Adjustable sizes per scene
     @Override
     public void start(Stage stage) {
 
@@ -249,18 +253,26 @@ public class Main extends Application {
 
     private void DuckHouse(Stage stage, String username) {
         BorderPane layout = sceneTemplate(stage, "house.png", username);
-
         StackPane root = (StackPane) stage.getScene().getRoot();
 
-        // CHARACTER
-        Image duckChar = new Image(getClass().getResource("/dockie.png").toExternalForm(), false);
-        ImageView charac = new ImageView(duckChar);
-        charac.setFitWidth(80);
+        // CHARACTER SIZE SETTINGS
+        double DEFAULT_SIZE = 80;     // original duck
+        double SELECTED_SIZE = 130;   // selected duck
+
+        // Use selected character if chosen
+        Image characterToUse = (selectedCharacter != null)
+                ? selectedCharacter
+                : new Image(getClass().getResource("/dockie.png").toExternalForm());
+
+        ImageView charac = new ImageView(characterToUse);
+
+        // APPLY DIFFERENT SIZE
+        charac.setFitWidth((selectedCharacter != null) ? SELECTED_SIZE : DEFAULT_SIZE);
+
         charac.setPreserveRatio(true);
         StackPane.setAlignment(charac, Pos.BOTTOM_CENTER);
         StackPane.setMargin(charac, new Insets(0, 0, 210, 0));
 
-        // SIGN
         Image sign = new Image(getClass().getResource("/sign.png").toExternalForm());
         ImageView signView = new ImageView(sign);
         signView.setFitWidth(180);
@@ -268,57 +280,53 @@ public class Main extends Application {
         StackPane.setAlignment(signView, Pos.TOP_CENTER);
         StackPane.setMargin(signView, new Insets(70, 0, 0, 0));
 
-        // HOUSE LABEL
-        Label userLabel = new Label("Joushua's House");
+        Label userLabel = new Label(username + "'s House");
         userLabel.setFont(Font.font("Arial", FontWeight.BOLD, 15));
         userLabel.setTextFill(Color.WHITE);
-        userLabel.setStyle(
-                "-fx-background-color: transparent;" +
-                        "-fx-border-color: transparent;"
-        );
+        userLabel.setStyle("-fx-background-color: transparent; -fx-border-color: transparent;");
         userLabel.setPrefWidth(180);
         userLabel.setPrefHeight(40);
-
-        // Align label
         StackPane.setAlignment(userLabel, Pos.TOP_CENTER);
-        StackPane.setMargin(userLabel, new Insets(130, 0, 0, 57)); // adjust top, left, bottom, right
+        StackPane.setMargin(userLabel, new Insets(130, 0, 0, 57));
 
         if (!root.getChildren().contains(charac)) root.getChildren().add(charac);
         if (!root.getChildren().contains(signView)) root.getChildren().add(signView);
         if (!root.getChildren().contains(userLabel)) root.getChildren().add(userLabel);
     }
-
-
     private void kitchen(Stage stage, String username) {
-        BorderPane layout = sceneTemplate(stage, "eat.png", username);
+        BorderPane layout = sceneTemplate(stage, "kitchen.png", username);
         StackPane root = (StackPane) stage.getScene().getRoot();
 
-        // ===== DUCK IMAGE (DROP TARGET) =====
-        ImageView duck = new ImageView(new Image(getClass().getResource("/dockieKitchen.png").toExternalForm(), false));
-        duck.setFitWidth(150); duck.setPreserveRatio(true);
-        StackPane.setAlignment(duck, Pos.BOTTOM_CENTER);
-        StackPane.setMargin(duck, new Insets(0, -140, 100, 0));
-        root.getChildren().add(duck);
+        double DEFAULT_SIZE = 150;
+        double SELECTED_SIZE = 255;
 
-        // Duck does not block buttons by default
+        Image characterToUse = (selectedCharacter != null)
+                ? selectedCharacter
+                : new Image(getClass().getResource("/dockieKitchen.png").toExternalForm());
+
+        ImageView duck = new ImageView(characterToUse);
+
+        duck.setFitWidth((selectedCharacter != null) ? SELECTED_SIZE : DEFAULT_SIZE);
+        duck.setPreserveRatio(true);
+        StackPane.setAlignment(duck, Pos.BOTTOM_CENTER);
+        StackPane.setMargin(duck, new Insets(0, -200, 135, 0));
+        root.getChildren().add(duck);
         duck.setMouseTransparent(true);
 
-        // ===== FOOD PANE =====
         Pane foodPane = new Pane();
         foodPane.setPrefSize(200, 300);
         layout.setCenter(foodPane);
 
-        // Buttons
         Button btnLeft = new Button(); btnLeft.getStyleClass().add("arrow-button-left");
-        btnLeft.setPrefSize(30, 30); btnLeft.setLayoutX(20); btnLeft.setLayoutY(200);
+        btnLeft.setPrefSize(30, 30); btnLeft.setLayoutX(40); btnLeft.setLayoutY(180);
+
         Button btnRight = new Button(); btnRight.getStyleClass().add("arrow-button-right");
-        btnRight.setPrefSize(30, 30); btnRight.setLayoutX(140); btnRight.setLayoutY(200);
+        btnRight.setPrefSize(30, 30); btnRight.setLayoutX(175); btnRight.setLayoutY(180);
+
         foodPane.getChildren().addAll(btnLeft, btnRight);
 
-        // ===== INITIAL FOOD =====
         createFood(foodPane, duck);
 
-        // Button actions to switch food manually
         btnLeft.setOnAction(e -> {
             foodIndex = (foodIndex - 1 + foods.length) % foods.length;
             updateFood(foodPane, duck);
@@ -333,36 +341,72 @@ public class Main extends Application {
         stage.show();
     }
 
-    // Create the food ImageView and make it draggable
+    // EATING ANIMATION
+    private void showMouthOpen(ImageView duck) {
+        double originalWidth = duck.getFitWidth();
+        double originalTranslateX = duck.getTranslateX();
+        double originalTranslateY = duck.getTranslateY();
+
+        duck.setImage(new Image(getClass().getResource("/eating.png").toExternalForm()));
+        duck.setFitWidth(305);                     // eating duck size
+        duck.setTranslateX(originalTranslateX + 1); // move right 20px
+        duck.setTranslateY(originalTranslateY + 60); // move down 50px
+
+        PauseTransition pt = new PauseTransition(Duration.millis(200)); // short duration
+        pt.setOnFinished(e -> {
+            duck.setImage(new Image(getClass().getResource("/dockieKitchen.png").toExternalForm()));
+            duck.setFitWidth(originalWidth);
+            duck.setTranslateX(originalTranslateX);
+            duck.setTranslateY(originalTranslateY);
+        });
+        pt.play();
+    }
+
     private void createFood(Pane foodPane, ImageView duck) {
         foodDisplay = new ImageView(new Image(getClass().getResourceAsStream("/" + foods[foodIndex])));
-        foodDisplay.setFitWidth(90); foodDisplay.setPreserveRatio(true);
-        foodDisplay.setLayoutX(55); foodDisplay.setLayoutY(130);
+        foodDisplay.setFitWidth(100);
+        foodDisplay.setPreserveRatio(true);
+        foodDisplay.setLayoutX(70);
+        foodDisplay.setLayoutY(90);
 
         makeDraggable(foodDisplay, duck, foodPane);
         foodPane.getChildren().add(foodDisplay);
     }
 
-    // Update the current food
     private void updateFood(Pane foodPane, ImageView duck) {
-        foodPane.getChildren().remove(foodDisplay); // remove old food
-        createFood(foodPane, duck);                 // add new food
+        foodPane.getChildren().remove(foodDisplay);
+        createFood(foodPane, duck);
     }
 
-    // Draggable
+    private boolean isFoodNearDuck(ImageView food, ImageView duck, double threshold) {
+        double duckCenterX = duck.getBoundsInParent().getMinX() + duck.getBoundsInParent().getWidth() / 2;
+        double duckCenterY = duck.getBoundsInParent().getMinY() + duck.getBoundsInParent().getHeight() / 2;
+
+        double foodCenterX = food.getBoundsInParent().getMinX() + food.getBoundsInParent().getWidth() / 2;
+        double foodCenterY = food.getBoundsInParent().getMinY() + food.getBoundsInParent().getHeight() / 2;
+
+        double distance = Math.hypot(duckCenterX - foodCenterX, duckCenterY - foodCenterY);
+        return distance <= threshold;
+    }
+
     private void makeDraggable(ImageView food, ImageView duck, Pane pane) {
         final Delta dragDelta = new Delta();
 
         food.setOnMousePressed(e -> {
             dragDelta.x = e.getSceneX() - food.getLayoutX();
             dragDelta.y = e.getSceneY() - food.getLayoutY();
-            food.toFront(); // above duck while dragging
+            food.toFront();
         });
 
         food.setOnMouseDragged(e -> {
             food.setLayoutX(e.getSceneX() - dragDelta.x);
             food.setLayoutY(e.getSceneY() - dragDelta.y);
-            food.toFront(); // keep food above duck
+            food.toFront();
+
+            // ⭐ Check if food is near duck while dragging
+            if (isFoodNearDuck(food, duck, 80)) {
+                showMouthOpen(duck);
+            }
         });
 
         food.setOnDragDetected(e -> {
@@ -372,27 +416,16 @@ public class Main extends Application {
             e.consume();
         });
 
-        // Feeding the duck
+        // Feeding event (when released on duck)
         duck.setOnMouseDragReleased(e -> {
             Object src = e.getGestureSource();
             if (src instanceof ImageView draggedFood) {
-
-                // Bring food to front so it looks like duck eats it
                 draggedFood.toFront();
+                showMouthOpen(duck);
 
-                // Eat animation
-                ScaleTransition st = new ScaleTransition(Duration.millis(140), duck);
-                st.setFromX(1); st.setFromY(1);
-                st.setToX(1.15); st.setToY(1.15);
-                st.setAutoReverse(true);
-                st.setCycleCount(2);
-                st.play();
-
-                // Remove food and show next
                 foodIndex = (foodIndex + 1) % foods.length;
                 updateFood(pane, duck);
             }
-
             duck.setMouseTransparent(true);
         });
 
@@ -401,29 +434,36 @@ public class Main extends Application {
 
 
     private static class Delta { double x, y; }
-
+    // Add these as class-level variables
+    private ImageView brushBubble;
+    private FadeTransition brushBubbleFade;
 
     private void bathRoom(Stage stage, String username) {
         BorderPane layout = sceneTemplate(stage, "cr.png", username);
+        StackPane root = (StackPane) stage.getScene().getRoot();
+
+        // CHARACTER SIZE SETTINGS
+        double DEFAULT_SIZE = 150;
+        double SELECTED_SIZE = 250;
 
         Image bucket = new Image(getClass().getResource("/water (1).png").toExternalForm());
         Image brush = new Image(getClass().getResource("/scrub.png").toExternalForm());
-        Image dockieBath = new Image(getClass().getResource("/dockieBath.png").toExternalForm());
+
+        Image characterToUse = (selectedCharacter != null)
+                ? selectedCharacter
+                : new Image(getClass().getResource("/dockieBath.png").toExternalForm());
+
+        ImageView dockieView = new ImageView(characterToUse);
+        dockieView.setFitWidth((selectedCharacter != null) ? SELECTED_SIZE : DEFAULT_SIZE);
+        dockieView.setPreserveRatio(true);
+        StackPane.setAlignment(dockieView, Pos.CENTER);
+        dockieView.setTranslateY(20);
 
         ImageView brushView = new ImageView(brush);
         ImageView bucketView = new ImageView(bucket);
-        ImageView dockieView = new ImageView(dockieBath);
+        brushView.setFitHeight(60); brushView.setFitWidth(60);
+        bucketView.setFitHeight(60); bucketView.setFitWidth(60);
 
-        brushView.setFitHeight(80);
-        brushView.setFitWidth(80);
-        bucketView.setFitHeight(80);
-        bucketView.setFitWidth(80);
-
-        // Duck size
-        dockieView.setFitWidth(150);
-        dockieView.setPreserveRatio(true);
-
-        // Buttons
         Button bucketBtn = new Button();
         bucketBtn.setGraphic(bucketView);
         bucketBtn.setStyle("-fx-background-color: transparent;");
@@ -432,97 +472,151 @@ public class Main extends Application {
         brushBtn.setGraphic(brushView);
         brushBtn.setStyle("-fx-background-color: transparent;");
 
-        // Root pane
-        StackPane root = (StackPane) stage.getScene().getRoot();
-
-        // Positioning
-        StackPane.setAlignment(dockieView, Pos.CENTER);
-        dockieView.setTranslateY(20);
-
         StackPane.setAlignment(brushBtn, Pos.CENTER_RIGHT);
-        brushBtn.setTranslateX(-20);
-        brushBtn.setTranslateY(40);
-
+        brushBtn.setTranslateX(-20); brushBtn.setTranslateY(40);
         StackPane.setAlignment(bucketBtn, Pos.CENTER_LEFT);
-        bucketBtn.setTranslateX(10);
-        bucketBtn.setTranslateY(40);
+        bucketBtn.setTranslateX(10); bucketBtn.setTranslateY(40);
 
         root.getChildren().addAll(dockieView, bucketBtn, brushBtn);
-
 
         double[] bucketOrig = { bucketBtn.getTranslateX(), bucketBtn.getTranslateY() };
         double[] brushOrig = { brushBtn.getTranslateX(), brushBtn.getTranslateY() };
 
-        makeDraggable(bucketBtn, bucketOrig, dockieView);
-        makeDraggable(brushBtn, brushOrig, dockieView);
+        // Make draggable
+        makeDraggable(brushBtn, brushOrig, dockieView, root, true);   // brush
+        makeDraggable(bucketBtn, bucketOrig, dockieView, root, false); // bucket
     }
-
-    private void makeDraggable(Button btn, double[] origPos, ImageView duck) {
-
+    private void makeDraggable(Button btn, double[] origPos, ImageView duck, StackPane parentForBubbles, boolean isBrush) {
         final double[] mouseOffset = new double[2];
+
+        // --- Sound Effect for bucket ---
+        AudioClip splashSound = new AudioClip(getClass().getResource("/WaterSplashSFX.mp3").toExternalForm());
+
+        // --- Sound Effect for brush ---
+        AudioClip brushSound = new AudioClip(getClass().getResource("").toExternalForm());
+
+        // Splash for bucket
+        Image splashImage = new Image(getClass().getResource("/splash.png").toExternalForm());
+        ImageView splash = new ImageView(splashImage);
+        splash.setFitWidth(200);
+        splash.setPreserveRatio(true);
+        splash.setVisible(false);
+
+        // Brush bubble (only if brush)
+        if (isBrush) {
+            brushBubble = new ImageView(new Image(getClass().getResource("/bubbles.png").toExternalForm()));
+            brushBubble.setFitWidth(280);
+            brushBubble.setPreserveRatio(true);
+            brushBubble.setVisible(false);
+            parentForBubbles.getChildren().add(brushBubble);
+            brushBubble.toFront();
+
+            brushBubbleFade = new FadeTransition(Duration.millis(4000), brushBubble);
+            brushBubbleFade.setFromValue(0);
+            brushBubbleFade.setToValue(1);
+        }
+
+        StackPane parent = (StackPane) duck.getParent();
+        parent.getChildren().add(splash);
+        splash.toFront();
 
         btn.setOnMousePressed(e -> {
             mouseOffset[0] = e.getSceneX() - btn.getTranslateX();
             mouseOffset[1] = e.getSceneY() - btn.getTranslateY();
+            btn.toFront();
         });
 
         btn.setOnMouseDragged(e -> {
             btn.setTranslateX(e.getSceneX() - mouseOffset[0]);
             btn.setTranslateY(e.getSceneY() - mouseOffset[1]);
 
-            // Touch detection (washing)
-            if (btn.getBoundsInParent().intersects(duck.getBoundsInParent())) {
-                duck.setOpacity(0.7);   // washing effect
-            } else {
-                duck.setOpacity(1.0);
+            if (isBrush && brushBubble != null && btn.getBoundsInParent().intersects(duck.getBoundsInParent())) {
+
+                // Bubble follows brush
+                double brushX = btn.getTranslateX() + btn.getWidth() / 2;
+                double brushY = btn.getTranslateY() + btn.getHeight() / 2;
+                brushBubble.setLayoutX(brushX - brushBubble.getFitWidth() / 2);
+                brushBubble.setLayoutY(brushY - brushBubble.getFitHeight() / 2);
+
+                if (!brushBubble.isVisible()) {
+                    brushBubble.setVisible(true);
+                    brushBubbleFade.playFromStart();
+                }
+
+                // --- PLAY BRUSH SOUND ---
+                brushSound.play();
             }
+
+            btn.toFront();
         });
 
         btn.setOnMouseReleased(e -> {
-            // Snap back
+            Bounds btnBounds = btn.localToScene(btn.getBoundsInLocal());
+            Bounds duckBounds = duck.localToScene(duck.getBoundsInLocal());
+
+            if (btnBounds.intersects(duckBounds)) {
+                if (!isBrush) { // bucket splash
+
+                    // --- Play the splash sound ---
+                    splashSound.play();
+
+                    double duckCenterX = (duckBounds.getMinX() + duckBounds.getMaxX()) / 2;
+                    double duckCenterY = (duckBounds.getMinY() + duckBounds.getMaxY()) / 2;
+
+                    Point2D splashPos = parent.sceneToLocal(duckCenterX, duckCenterY);
+                    splash.setLayoutX(splashPos.getX() - splash.getFitWidth() / 2);
+                    splash.setLayoutY(splashPos.getY() - splash.getFitHeight() / 2);
+                    splash.setVisible(true);
+
+                    PauseTransition pt = new PauseTransition(Duration.millis(500));
+                    pt.setOnFinished(ev -> splash.setVisible(false));
+                    pt.play();
+
+                    // Hide brush bubble when bucket is used
+                    if (brushBubble != null) {
+                        brushBubble.setVisible(false);
+                        brushBubbleFade.stop();
+                    }
+                }
+            }
+
             btn.setTranslateX(origPos[0]);
             btn.setTranslateY(origPos[1]);
             duck.setOpacity(1.0);
         });
     }
 
-
     private void bedRoom(Stage stage, String username) {
-        // Get base layout from sceneTemplate
         BorderPane layout = sceneTemplate(stage, "room.png", username);
+        StackPane root = (StackPane) stage.getScene().getRoot();
 
-        // Images
+        // CHARACTER SIZE SETTINGS
+        double DEFAULT_SIZE = 150;
+        double SELECTED_SIZE = 250;
+
+        Image awakeDuck = (selectedCharacter != null)
+                ? selectedCharacter
+                : new Image(getClass().getResource("/dockieBed.png").toExternalForm());
+
+        Image sleepingDuck = new Image(getClass().getResource("/DuckSleeping.png").toExternalForm());
         Image lampOff = new Image(getClass().getResource("/lambing.png").toExternalForm());
         Image lampOn = new Image(getClass().getResource("/lamning.png").toExternalForm());
         Image bgOff = new Image(getClass().getResource("/nightver.png").toExternalForm());
         Image bgOn = new Image(getClass().getResource("/room.png").toExternalForm());
-        Image character = new Image(getClass().getResource("/dockieCloset.png").toExternalForm());
-        ImageView characs = new ImageView(character);
-        characs.setFitWidth(150);
-        characs.setPreserveRatio(true);
-        Image awakeDuck = new Image(getClass().getResource("/dockieBed.png").toExternalForm());
-        Image sleepingDuck = new Image(getClass().getResource("/DuckSleeping.png").toExternalForm());
 
-        // Access the root StackPane
-        StackPane root = (StackPane) stage.getScene().getRoot();
-
-        // Background image view
-        ImageView bgView = (ImageView) root.getChildren().get(0);
-
-        // Create new ImageView for the character and add it to the root
         ImageView charac = new ImageView(awakeDuck);
-        charac.setFitWidth(150);
+
+        // APPLY DIFFERENT SIZE
+        charac.setFitWidth((selectedCharacter != null) ? SELECTED_SIZE : DEFAULT_SIZE);
+
         charac.setPreserveRatio(true);
         StackPane.setAlignment(charac, Pos.BOTTOM_CENTER);
         StackPane.setMargin(charac, new Insets(0, 0, 180, 0));
-        if (!root.getChildren().contains(charac)) {
-            root.getChildren().add(charac);
-        }
+        if (!root.getChildren().contains(charac)) root.getChildren().add(charac);
 
-        // Lamp button
+        ImageView bgView = (ImageView) root.getChildren().get(0);
         ImageView lampView = new ImageView(lampOn);
-        lampView.setFitWidth(80);
-        lampView.setPreserveRatio(true);
+        lampView.setFitWidth(80); lampView.setPreserveRatio(true);
 
         ToggleButton lampButton = new ToggleButton();
         lampButton.setGraphic(lampView);
@@ -534,12 +628,17 @@ public class Main extends Application {
                 lampView.setImage(lampOn);
                 bgView.setImage(bgOn);
                 charac.setImage(awakeDuck);
-                charac.setFitWidth(150);
+
+                // RESET TO CORRECT SIZE
+                charac.setFitWidth((selectedCharacter != null) ? SELECTED_SIZE : DEFAULT_SIZE);
+
                 StackPane.setMargin(charac, new Insets(0, 0, 180, 0));
             } else {
                 lampView.setImage(lampOff);
                 bgView.setImage(bgOff);
                 charac.setImage(sleepingDuck);
+
+                // SLEEPING SIZE (kept your original!)
                 charac.setFitWidth(210);
                 StackPane.setMargin(charac, new Insets(0, 0, 160, 0));
             }
@@ -547,46 +646,78 @@ public class Main extends Application {
 
         StackPane.setAlignment(lampButton, Pos.TOP_RIGHT);
         StackPane.setMargin(lampButton, new Insets(60, 30, 0, 0));
-
-        // Add lamp button to root
-        if (!root.getChildren().contains(lampButton)) {
-            root.getChildren().add(lampButton);
-        }
+        if (!root.getChildren().contains(lampButton)) root.getChildren().add(lampButton);
     }
 
+    private int outfitIndex = 0;
+
     private void closet(Stage stage, String username) {
-        // Keep your original background
         BorderPane layout = sceneTemplate(stage, "closet.png", username);
-
-        // --- Character ---
-        Image character = new Image(getClass().getResource("/dockieCloset.png").toExternalForm());
-        ImageView charac = new ImageView(character);
-        charac.setFitWidth(150);
-        charac.setPreserveRatio(true);
-
-        // Get the StackPane used inside sceneTemplate
         StackPane root = (StackPane) stage.getScene().getRoot();
 
-        // Add character to the root so it appears on top of background
+        // --- Character Images (3 available characters) ---
+        Image[] characters = new Image[] {
+                new Image(getClass().getResource("DuckCatHat.png").toExternalForm()),
+                new Image(getClass().getResource("DuckFrogHat.png").toExternalForm()),
+                new Image(getClass().getResource("DuckStitchHat.png").toExternalForm())
+        };
+
+        // Main preview ImageView
+        ImageView charac = new ImageView(characters[0]);
+        charac.setFitWidth(250);
+        charac.setPreserveRatio(true);
         StackPane.setAlignment(charac, Pos.BOTTOM_CENTER);
-        StackPane.setMargin(charac, new Insets(0, 0, 180, 0)); // adjust vertical position if needed
+        StackPane.setMargin(charac, new Insets(0, 0, 180, 18));
         root.getChildren().add(charac);
 
-        // --- Buttons ---
+        // --- Arrow Buttons ---
         Button leftArrow = new Button();
         leftArrow.getStyleClass().add("arrow-button-left");
-        leftArrow.setOnAction(e -> System.out.println("Left arrow clicked!"));
 
         Button rightArrow = new Button();
         rightArrow.getStyleClass().add("arrow-button-right");
-        rightArrow.setOnAction(e -> System.out.println("Right arrow clicked!"));
 
-        // Add buttons to the same root
         StackPane.setAlignment(leftArrow, Pos.CENTER_LEFT);
         StackPane.setAlignment(rightArrow, Pos.CENTER_RIGHT);
         StackPane.setMargin(leftArrow, new Insets(0, 0, 0, 10));
         StackPane.setMargin(rightArrow, new Insets(0, 10, 0, 0));
         root.getChildren().addAll(leftArrow, rightArrow);
+
+        // Switch preview character
+        leftArrow.setOnAction(e -> {
+            outfitIndex = (outfitIndex - 1 + characters.length) % characters.length;
+            charac.setImage(characters[outfitIndex]);
+        });
+
+        rightArrow.setOnAction(e -> {
+            outfitIndex = (outfitIndex + 1) % characters.length;
+            charac.setImage(characters[outfitIndex]);
+        });
+
+// --- SELECT AND REMOVE BUTTONS IN HBOX ---
+        Button selectBtn = new Button("Use");
+        selectBtn.getStyleClass().add("buy-button");
+        selectBtn.setPrefSize(90, 20);
+
+        Button removeBtn = new Button("Remove");
+        removeBtn.getStyleClass().add("buy-button");
+        removeBtn.setPrefSize(90, 20);
+
+// Put buttons in HBox
+        HBox buttonBox = new HBox(20); // spacing
+        buttonBox.getChildren().addAll(selectBtn, removeBtn);
+        buttonBox.setAlignment(Pos.CENTER);
+
+// Overlay on top of root
+        StackPane.setAlignment(buttonBox, Pos.BOTTOM_CENTER);
+        StackPane.setMargin(buttonBox, new Insets(300, 0, 80, 0)); // distance from bottom
+        root.getChildren().add(buttonBox);
+        buttonBox.toFront(); // make sure it's clickable
+
+// Button actions
+        selectBtn.setOnAction(e -> selectedCharacter = characters[outfitIndex]);
+        removeBtn.setOnAction(e -> selectedCharacter = null);
+
     }
 
     private BorderPane sceneTemplate(Stage stage, String bgFile, String username) {
