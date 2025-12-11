@@ -19,6 +19,9 @@ import javafx.scene.media.MediaPlayer;
 import javafx.scene.text.Font;
 import javafx.util.Duration;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class Main extends Application {
 
     private static MediaPlayer mediaPlayer;
@@ -30,6 +33,12 @@ public class Main extends Application {
     private int foodIndex = 0;
     private final String[] foods = {"peas.png", "birdseed.png", "corn.png", "oats.png"};
     private static Image selectedCharacter = null;
+    private String[] foodsNight = {
+            "peas night.png",
+            "bird seeds night.png",
+            "corn night.png",
+            "oats night.png"
+    };
     // Adjustable sizes per scene
     @Override
     public void start(Stage stage) {
@@ -256,30 +265,32 @@ public class Main extends Application {
         StackPane root = (StackPane) stage.getScene().getRoot();
 
         // CHARACTER SIZE SETTINGS
-        double DEFAULT_SIZE = 80;     // original duck
-        double SELECTED_SIZE = 130;   // selected duck
+        double DEFAULT_SIZE = 80;
+        double SELECTED_SIZE = 130;
 
-        // Use selected character if chosen
         Image characterToUse = (selectedCharacter != null)
                 ? selectedCharacter
                 : new Image(getClass().getResource("/dockie.png").toExternalForm());
 
         ImageView charac = new ImageView(characterToUse);
-
-        // APPLY DIFFERENT SIZE
         charac.setFitWidth((selectedCharacter != null) ? SELECTED_SIZE : DEFAULT_SIZE);
-
         charac.setPreserveRatio(true);
         StackPane.setAlignment(charac, Pos.BOTTOM_CENTER);
         StackPane.setMargin(charac, new Insets(0, 0, 210, 0));
 
-        Image sign = new Image(getClass().getResource("/sign.png").toExternalForm());
-        ImageView signView = new ImageView(sign);
-        signView.setFitWidth(180);
-        signView.setPreserveRatio(true);
-        StackPane.setAlignment(signView, Pos.TOP_CENTER);
-        StackPane.setMargin(signView, new Insets(70, 0, 0, 0));
+        // Show character only if NOT night mode
+        if (!isNightMode && !root.getChildren().contains(charac)) root.getChildren().add(charac);
 
+        // SIGN
+        Image sign = new Image(getClass().getResource(isNightMode ? "/sign night.png" : "/sign.png").toExternalForm());
+        ImageView signView = new ImageView(sign);
+        signView.setPreserveRatio(true);
+        signView.setFitWidth(isNightMode ? 200 : 180);
+        StackPane.setAlignment(signView, Pos.TOP_CENTER);
+        StackPane.setMargin(signView, new Insets(isNightMode ? 60 : 70, 0, 0, 0));
+        if (!root.getChildren().contains(signView)) root.getChildren().add(signView);
+
+        // USER LABEL
         Label userLabel = new Label(username + "'s House");
         userLabel.setFont(Font.font("Arial", FontWeight.BOLD, 15));
         userLabel.setTextFill(Color.WHITE);
@@ -288,9 +299,6 @@ public class Main extends Application {
         userLabel.setPrefHeight(40);
         StackPane.setAlignment(userLabel, Pos.TOP_CENTER);
         StackPane.setMargin(userLabel, new Insets(130, 0, 0, 57));
-
-        if (!root.getChildren().contains(charac)) root.getChildren().add(charac);
-        if (!root.getChildren().contains(signView)) root.getChildren().add(signView);
         if (!root.getChildren().contains(userLabel)) root.getChildren().add(userLabel);
     }
     private void kitchen(Stage stage, String username) {
@@ -305,23 +313,30 @@ public class Main extends Application {
                 : new Image(getClass().getResource("/dockieKitchen.png").toExternalForm());
 
         ImageView duck = new ImageView(characterToUse);
-
         duck.setFitWidth((selectedCharacter != null) ? SELECTED_SIZE : DEFAULT_SIZE);
         duck.setPreserveRatio(true);
         StackPane.setAlignment(duck, Pos.BOTTOM_CENTER);
         StackPane.setMargin(duck, new Insets(0, -200, 135, 0));
-        root.getChildren().add(duck);
+
+        // Show character only if NOT night mode
+        if (!isNightMode && !root.getChildren().contains(duck)) root.getChildren().add(duck);
         duck.setMouseTransparent(true);
 
         Pane foodPane = new Pane();
         foodPane.setPrefSize(200, 300);
         layout.setCenter(foodPane);
 
-        Button btnLeft = new Button(); btnLeft.getStyleClass().add("arrow-button-left");
-        btnLeft.setPrefSize(30, 30); btnLeft.setLayoutX(40); btnLeft.setLayoutY(180);
+        Button btnLeft = new Button();
+        btnLeft.getStyleClass().add("arrow-button-left");
+        btnLeft.setPrefSize(30, 30);
+        btnLeft.setLayoutX(20);
+        btnLeft.setLayoutY(210);
 
-        Button btnRight = new Button(); btnRight.getStyleClass().add("arrow-button-right");
-        btnRight.setPrefSize(30, 30); btnRight.setLayoutX(175); btnRight.setLayoutY(180);
+        Button btnRight = new Button();
+        btnRight.getStyleClass().add("arrow-button-right");
+        btnRight.setPrefSize(30, 30);
+        btnRight.setLayoutX(155);
+        btnRight.setLayoutY(210);
 
         foodPane.getChildren().addAll(btnLeft, btnRight);
 
@@ -348,11 +363,11 @@ public class Main extends Application {
         double originalTranslateY = duck.getTranslateY();
 
         duck.setImage(new Image(getClass().getResource("/eating.png").toExternalForm()));
-        duck.setFitWidth(305);                     // eating duck size
-        duck.setTranslateX(originalTranslateX + 1); // move right 20px
-        duck.setTranslateY(originalTranslateY + 60); // move down 50px
+        duck.setFitWidth(305);
+        duck.setTranslateX(originalTranslateX + 1);
+        duck.setTranslateY(originalTranslateY + 60);
 
-        PauseTransition pt = new PauseTransition(Duration.millis(200)); // short duration
+        PauseTransition pt = new PauseTransition(Duration.millis(200));
         pt.setOnFinished(e -> {
             duck.setImage(new Image(getClass().getResource("/dockieKitchen.png").toExternalForm()));
             duck.setFitWidth(originalWidth);
@@ -362,12 +377,21 @@ public class Main extends Application {
         pt.play();
     }
 
+    // ⭐ MERGED NIGHT-MODE FOOD SUPPORT
     private void createFood(Pane foodPane, ImageView duck) {
-        foodDisplay = new ImageView(new Image(getClass().getResourceAsStream("/" + foods[foodIndex])));
+
+        String foodFile = isNightMode
+                ? foodsNight[foodIndex]    // night version
+                : foods[foodIndex];        // normal version
+
+        foodDisplay = new ImageView(new Image(
+                getClass().getResourceAsStream("/" + foodFile)
+        ));
+
         foodDisplay.setFitWidth(100);
         foodDisplay.setPreserveRatio(true);
-        foodDisplay.setLayoutX(70);
-        foodDisplay.setLayoutY(90);
+        foodDisplay.setLayoutX(53);
+        foodDisplay.setLayoutY(125);
 
         makeDraggable(foodDisplay, duck, foodPane);
         foodPane.getChildren().add(foodDisplay);
@@ -375,7 +399,7 @@ public class Main extends Application {
 
     private void updateFood(Pane foodPane, ImageView duck) {
         foodPane.getChildren().remove(foodDisplay);
-        createFood(foodPane, duck);
+        createFood(foodPane, duck);  // now loads night or normal automatically
     }
 
     private boolean isFoodNearDuck(ImageView food, ImageView duck, double threshold) {
@@ -403,7 +427,6 @@ public class Main extends Application {
             food.setLayoutY(e.getSceneY() - dragDelta.y);
             food.toFront();
 
-            // ⭐ Check if food is near duck while dragging
             if (isFoodNearDuck(food, duck, 80)) {
                 showMouthOpen(duck);
             }
@@ -416,7 +439,6 @@ public class Main extends Application {
             e.consume();
         });
 
-        // Feeding event (when released on duck)
         duck.setOnMouseDragReleased(e -> {
             Object src = e.getGestureSource();
             if (src instanceof ImageView draggedFood) {
@@ -432,9 +454,7 @@ public class Main extends Application {
         food.setOnMouseReleased(e -> duck.setMouseTransparent(true));
     }
 
-
     private static class Delta { double x, y; }
-    // Add these as class-level variables
     private ImageView brushBubble;
     private FadeTransition brushBubbleFade;
 
@@ -446,24 +466,43 @@ public class Main extends Application {
         double DEFAULT_SIZE = 150;
         double SELECTED_SIZE = 250;
 
-        Image bucket = new Image(getClass().getResource("/water (1).png").toExternalForm());
-        Image brush = new Image(getClass().getResource("/scrub.png").toExternalForm());
-
+        // Only show character if lamp is ON
         Image characterToUse = (selectedCharacter != null)
                 ? selectedCharacter
                 : new Image(getClass().getResource("/dockieBath.png").toExternalForm());
 
-        ImageView dockieView = new ImageView(characterToUse);
-        dockieView.setFitWidth((selectedCharacter != null) ? SELECTED_SIZE : DEFAULT_SIZE);
-        dockieView.setPreserveRatio(true);
-        StackPane.setAlignment(dockieView, Pos.CENTER);
-        dockieView.setTranslateY(20);
+        ImageView dockieView = null;
+        if (!isNightMode) {
+            dockieView = new ImageView(characterToUse);
+            dockieView.setFitWidth((selectedCharacter != null) ? SELECTED_SIZE : DEFAULT_SIZE);
+            dockieView.setPreserveRatio(true);
+            StackPane.setAlignment(dockieView, Pos.CENTER);
+            dockieView.setTranslateY(20);
+            root.getChildren().add(dockieView);
+        }
+
+        // --- Bucket and Brush images, day/night versions ---
+        String bucketFile = isNightMode ? "/water (2).png" : "/water (1).png";
+        String brushFile  = isNightMode ? "/scrub night.png" : "/scrub.png";
+
+        Image bucket = new Image(getClass().getResource(bucketFile).toExternalForm());
+        Image brush  = new Image(getClass().getResource(brushFile).toExternalForm());
 
         ImageView brushView = new ImageView(brush);
         ImageView bucketView = new ImageView(bucket);
-        brushView.setFitHeight(60); brushView.setFitWidth(60);
-        bucketView.setFitHeight(60); bucketView.setFitWidth(60);
 
+        if (isNightMode) {
+            brushView.setFitWidth(80);
+            brushView.setFitHeight(125);
+        } else {
+            brushView.setFitWidth(60);
+            brushView.setFitHeight(60);
+        }
+
+        bucketView.setFitWidth(60);
+        bucketView.setFitHeight(60);
+
+        // Buttons
         Button bucketBtn = new Button();
         bucketBtn.setGraphic(bucketView);
         bucketBtn.setStyle("-fx-background-color: transparent;");
@@ -473,27 +512,28 @@ public class Main extends Application {
         brushBtn.setStyle("-fx-background-color: transparent;");
 
         StackPane.setAlignment(brushBtn, Pos.CENTER_RIGHT);
-        brushBtn.setTranslateX(-20); brushBtn.setTranslateY(40);
-        StackPane.setAlignment(bucketBtn, Pos.CENTER_LEFT);
-        bucketBtn.setTranslateX(10); bucketBtn.setTranslateY(40);
+        brushBtn.setTranslateX(-20);
+        brushBtn.setTranslateY(40);
 
-        root.getChildren().addAll(dockieView, bucketBtn, brushBtn);
+        StackPane.setAlignment(bucketBtn, Pos.CENTER_LEFT);
+        bucketBtn.setTranslateX(10);
+        bucketBtn.setTranslateY(40);
+
+        root.getChildren().addAll(bucketBtn, brushBtn);
 
         double[] bucketOrig = { bucketBtn.getTranslateX(), bucketBtn.getTranslateY() };
         double[] brushOrig = { brushBtn.getTranslateX(), brushBtn.getTranslateY() };
 
         // Make draggable
-        makeDraggable(brushBtn, brushOrig, dockieView, root, true);   // brush
-        makeDraggable(bucketBtn, bucketOrig, dockieView, root, false); // bucket
+        makeDraggable(brushBtn, brushOrig, dockieView, root, true);
+        makeDraggable(bucketBtn, bucketOrig, dockieView, root, false);
     }
+
     private void makeDraggable(Button btn, double[] origPos, ImageView duck, StackPane parentForBubbles, boolean isBrush) {
         final double[] mouseOffset = new double[2];
 
         // --- Sound Effect for bucket ---
         AudioClip splashSound = new AudioClip(getClass().getResource("/WaterSplashSFX.mp3").toExternalForm());
-
-        // --- Sound Effect for brush ---
-        AudioClip brushSound = new AudioClip(getClass().getResource("").toExternalForm());
 
         // Splash for bucket
         Image splashImage = new Image(getClass().getResource("/splash.png").toExternalForm());
@@ -505,7 +545,7 @@ public class Main extends Application {
         // Brush bubble (only if brush)
         if (isBrush) {
             brushBubble = new ImageView(new Image(getClass().getResource("/bubbles.png").toExternalForm()));
-            brushBubble.setFitWidth(280);
+            brushBubble.setFitWidth(250);
             brushBubble.setPreserveRatio(true);
             brushBubble.setVisible(false);
             parentForBubbles.getChildren().add(brushBubble);
@@ -531,10 +571,13 @@ public class Main extends Application {
             btn.setTranslateY(e.getSceneY() - mouseOffset[1]);
 
             if (isBrush && brushBubble != null && btn.getBoundsInParent().intersects(duck.getBoundsInParent())) {
+                // --- Bubble follows brush with adjustable position ---
+                double offsetX = -40;
+                double offsetY = 150;
 
-                // Bubble follows brush
-                double brushX = btn.getTranslateX() + btn.getWidth() / 2;
-                double brushY = btn.getTranslateY() + btn.getHeight() / 2;
+                double brushX = btn.getTranslateX() + btn.getWidth() / 2 + offsetX;
+                double brushY = btn.getTranslateY() + btn.getHeight() / 2 + offsetY;
+
                 brushBubble.setLayoutX(brushX - brushBubble.getFitWidth() / 2);
                 brushBubble.setLayoutY(brushY - brushBubble.getFitHeight() / 2);
 
@@ -542,9 +585,6 @@ public class Main extends Application {
                     brushBubble.setVisible(true);
                     brushBubbleFade.playFromStart();
                 }
-
-                // --- PLAY BRUSH SOUND ---
-                brushSound.play();
             }
 
             btn.toFront();
@@ -556,8 +596,6 @@ public class Main extends Application {
 
             if (btnBounds.intersects(duckBounds)) {
                 if (!isBrush) { // bucket splash
-
-                    // --- Play the splash sound ---
                     splashSound.play();
 
                     double duckCenterX = (duckBounds.getMinX() + duckBounds.getMaxX()) / 2;
@@ -572,7 +610,6 @@ public class Main extends Application {
                     pt.setOnFinished(ev -> splash.setVisible(false));
                     pt.play();
 
-                    // Hide brush bubble when bucket is used
                     if (brushBubble != null) {
                         brushBubble.setVisible(false);
                         brushBubbleFade.stop();
@@ -586,6 +623,8 @@ public class Main extends Application {
         });
     }
 
+
+    private boolean isNightMode = false; // global flag
     private void bedRoom(Stage stage, String username) {
         BorderPane layout = sceneTemplate(stage, "room.png", username);
         StackPane root = (StackPane) stage.getScene().getRoot();
@@ -597,51 +636,56 @@ public class Main extends Application {
         Image awakeDuck = (selectedCharacter != null)
                 ? selectedCharacter
                 : new Image(getClass().getResource("/dockieBed.png").toExternalForm());
-
         Image sleepingDuck = new Image(getClass().getResource("/DuckSleeping.png").toExternalForm());
         Image lampOff = new Image(getClass().getResource("/lambing.png").toExternalForm());
         Image lampOn = new Image(getClass().getResource("/lamning.png").toExternalForm());
         Image bgOff = new Image(getClass().getResource("/nightver.png").toExternalForm());
         Image bgOn = new Image(getClass().getResource("/room.png").toExternalForm());
 
-        ImageView charac = new ImageView(awakeDuck);
+        // --- Duck ImageView ---
+        ImageView charac = new ImageView(isNightMode ? sleepingDuck : awakeDuck);
 
-        // APPLY DIFFERENT SIZE
-        charac.setFitWidth((selectedCharacter != null) ? SELECTED_SIZE : DEFAULT_SIZE);
+        double duckWidth = isNightMode ? 210 : ((selectedCharacter != null) ? SELECTED_SIZE : DEFAULT_SIZE);
+        Insets duckMargin = isNightMode ? new Insets(0, 0, 160, 0) : new Insets(0, 0, 180, 0);
 
+        charac.setFitWidth(duckWidth);
         charac.setPreserveRatio(true);
         StackPane.setAlignment(charac, Pos.BOTTOM_CENTER);
-        StackPane.setMargin(charac, new Insets(0, 0, 180, 0));
+        StackPane.setMargin(charac, duckMargin);
+
         if (!root.getChildren().contains(charac)) root.getChildren().add(charac);
 
+        // --- Background and lamp ---
         ImageView bgView = (ImageView) root.getChildren().get(0);
-        ImageView lampView = new ImageView(lampOn);
-        lampView.setFitWidth(80); lampView.setPreserveRatio(true);
+        ImageView lampView = new ImageView(isNightMode ? lampOff : lampOn);
+        lampView.setFitWidth(80);
+        lampView.setPreserveRatio(true);
 
         ToggleButton lampButton = new ToggleButton();
         lampButton.setGraphic(lampView);
         lampButton.getStyleClass().add("lamp-button");
-        lampButton.setSelected(true);
+        lampButton.setSelected(!isNightMode); // lamp ON if day
 
         lampButton.setOnAction(e -> {
             if (lampButton.isSelected()) {
+                // LAMP ON → day
+                isNightMode = false;
                 lampView.setImage(lampOn);
                 bgView.setImage(bgOn);
                 charac.setImage(awakeDuck);
-
-                // RESET TO CORRECT SIZE
-                charac.setFitWidth((selectedCharacter != null) ? SELECTED_SIZE : DEFAULT_SIZE);
-
-                StackPane.setMargin(charac, new Insets(0, 0, 180, 0));
             } else {
+                // LAMP OFF → night
+                isNightMode = true;
                 lampView.setImage(lampOff);
                 bgView.setImage(bgOff);
                 charac.setImage(sleepingDuck);
-
-                // SLEEPING SIZE (kept your original!)
-                charac.setFitWidth(210);
-                StackPane.setMargin(charac, new Insets(0, 0, 160, 0));
             }
+
+            // Update duck width and margin consistently
+            double updatedWidth = isNightMode ? 210 : ((selectedCharacter != null) ? SELECTED_SIZE : DEFAULT_SIZE);
+            Insets updatedMargin = isNightMode ? new Insets(0, 0, 160, 0) : new Insets(0, 0, 180, 0);
+            charac.setFitWidth(updatedWidth);
+            StackPane.setMargin(charac, updatedMargin);
         });
 
         StackPane.setAlignment(lampButton, Pos.TOP_RIGHT);
@@ -649,8 +693,8 @@ public class Main extends Application {
         if (!root.getChildren().contains(lampButton)) root.getChildren().add(lampButton);
     }
 
-    private int outfitIndex = 0;
 
+    private int outfitIndex = 0;
     private void closet(Stage stage, String username) {
         BorderPane layout = sceneTemplate(stage, "closet.png", username);
         StackPane root = (StackPane) stage.getScene().getRoot();
@@ -666,9 +710,12 @@ public class Main extends Application {
         ImageView charac = new ImageView(characters[0]);
         charac.setFitWidth(250);
         charac.setPreserveRatio(true);
+
         StackPane.setAlignment(charac, Pos.BOTTOM_CENTER);
         StackPane.setMargin(charac, new Insets(0, 0, 180, 18));
-        root.getChildren().add(charac);
+
+        // Only show character if NOT night mode
+        if (!isNightMode && !root.getChildren().contains(charac)) root.getChildren().add(charac);
 
         // --- Arrow Buttons ---
         Button leftArrow = new Button();
@@ -694,7 +741,7 @@ public class Main extends Application {
             charac.setImage(characters[outfitIndex]);
         });
 
-// --- SELECT AND REMOVE BUTTONS IN HBOX ---
+        // --- Select and Remove Buttons ---
         Button selectBtn = new Button("Use");
         selectBtn.getStyleClass().add("buy-button");
         selectBtn.setPrefSize(90, 20);
@@ -703,24 +750,35 @@ public class Main extends Application {
         removeBtn.getStyleClass().add("buy-button");
         removeBtn.setPrefSize(90, 20);
 
-// Put buttons in HBox
-        HBox buttonBox = new HBox(20); // spacing
-        buttonBox.getChildren().addAll(selectBtn, removeBtn);
+        HBox buttonBox = new HBox(20, selectBtn, removeBtn);
         buttonBox.setAlignment(Pos.CENTER);
 
-// Overlay on top of root
         StackPane.setAlignment(buttonBox, Pos.BOTTOM_CENTER);
-        StackPane.setMargin(buttonBox, new Insets(300, 0, 80, 0)); // distance from bottom
+        StackPane.setMargin(buttonBox, new Insets(300, 0, 80, 0));
         root.getChildren().add(buttonBox);
         buttonBox.toFront(); // make sure it's clickable
 
-// Button actions
+        // Button actions
         selectBtn.setOnAction(e -> selectedCharacter = characters[outfitIndex]);
         removeBtn.setOnAction(e -> selectedCharacter = null);
-
     }
 
     private BorderPane sceneTemplate(Stage stage, String bgFile, String username) {
+
+        // night mode map
+        Map<String, String> nightModeMap = new HashMap<>();
+        nightModeMap.put("house.png", "home night.png");
+        nightModeMap.put("kitchen.png", "kitchen night.png");
+        nightModeMap.put("cr.png", "bath night.png");
+        nightModeMap.put("room.png", "nightver.png");
+        nightModeMap.put("closet.png", "closet.png");
+
+        // apply only if night mode is ON
+        if (isNightMode && nightModeMap.containsKey(bgFile)) {
+            bgFile = nightModeMap.get(bgFile);
+        }
+
+        // ORIGINAL CODE — NOT REMOVED
         Image backGround = new Image(getClass().getResource("/" + bgFile).toExternalForm());
         ImageView bg = new ImageView(backGround);
         bg.setPreserveRatio(false);
